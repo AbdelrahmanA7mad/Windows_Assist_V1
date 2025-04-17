@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -14,14 +15,14 @@ namespace Windows_Assist_V1
 {
     public partial class MainWindow : Window
     {
+     
         private static readonly HttpClient client = new HttpClient();
-        private readonly string apiKey = "AIzaSyCppY6n1op4hEH-NLfbTPyYlDeQVdXOIQ4";
+        private readonly string apiKey = "AIzaSyDagl4Y255fV_j2ikxzpGKbbrvFKcH6HAA";
 
         public MainWindow()
         {
             InitializeComponent();
 
-            // Apply drop shadow effect to the main window
             var dropShadowEffect = new DropShadowEffect
             {
                 Color = Colors.Black,
@@ -38,8 +39,9 @@ namespace Windows_Assist_V1
             {
                 this.DragMove();
             };
-        }
 
+        }
+     
         private async void UserInput_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter && !string.IsNullOrWhiteSpace(UserInput.Text))
@@ -126,16 +128,38 @@ namespace Windows_Assist_V1
             {
                 contents = new[]
                 {
+            new {
+                parts = new[] {
                     new {
-                        parts = new[] {
-                                    new {
-                                        text = $"You're a PowerShell expert and writer. The user will describe a task, possibly including writing content. Return ONLY a full PowerShell command that completes the task — including generating text if needed. Output must be a valid single PowerShell command, without any explanation or formatting.\n\nUser request:\n\"{prompt}\""
-                                    }
-                        }
+                        text = $@"You are a PowerShell expert focused on generating precise Windows automation commands. Generate ONLY executable code without explanations.
+
+USER REQUEST: ""{prompt}""
+
+ESSENTIAL GUIDELINES:
+1. Return ONLY executable PowerShell code - no comments, quotes, explanations, or markdown
+2. For file paths, ALWAYS use environment variables or absolute paths (e.g., [Environment]::GetFolderPath('Desktop'), $env:USERPROFILE)
+3. Handle file existence checks with Test-Path before operations
+4. For wallpaper changes: Use the full sequence (validate file, set registry keys, refresh settings)
+5. For system settings: Include ALL required steps in the proper sequence
+6. Use try/catch blocks for potential errors
+7. For desktop files: Always use proper path resolution, not relative paths
+
+WALLPAPER CHANGE PATTERN:
+- Verify the image exists
+- Use absolute path with environment variables
+- Set proper registry keys in 'HKCU:\Control Panel\Desktop'
+- Update 'WallpaperStyle' and 'TileWallpaper' keys
+- Force a refresh using the user32.dll SendMessageTimeout function
+- Handle potential errors
+
+CHECK YOUR OUTPUT: Ensure your command is complete, properly formatted, and executable directly in PowerShell without any modifications."
                     }
                 }
+            }
+        }
             };
 
+            // Rest of the implementation remains the same
             var requestJson = JsonSerializer.Serialize(requestBody);
             var request = new HttpRequestMessage
             {
@@ -156,9 +180,9 @@ namespace Windows_Assist_V1
 
             return command?.Trim();
         }
-
         private void ExecutePowerShell(string command)
         {
+            MessageBox.Show(command);
             Process.Start(new ProcessStartInfo
             {
                 FileName = "powershell",
