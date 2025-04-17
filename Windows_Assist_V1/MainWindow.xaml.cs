@@ -121,75 +121,122 @@ namespace Windows_Assist_V1
         {
             this.WindowState = WindowState.Minimized;
         }
-
-        private async Task<string> GetPowerShellCommandFromGemini(string prompt)
+private async Task<string> GetPowerShellCommandFromGemini(string prompt)
+{
+    var requestBody = new
+    {
+        contents = new[]
         {
-            var requestBody = new
+            new
             {
-                contents = new[]
+                parts = new[]
                 {
-            new {
-                parts = new[] {
-                    new {
-                        text = $@"You are a PowerShell expert focused on generating precise Windows automation commands. Generate ONLY executable code without explanations.
+                    new
+                    {
+                        text = $@"
+You are an elite AI specializing in generating **perfect and highly optimized PowerShell automation scripts** for Windows environments. Your sole mission is to generate **unblemished, executable PowerShell code**—no commentary, explanations, or markdown. Just the script itself, designed for flawless execution.
 
-USER REQUEST: ""{prompt}""
+USER TASK: ""{prompt}""
 
-ESSENTIAL GUIDELINES:
-1. Return ONLY executable PowerShell code - no comments, quotes, explanations, or markdown
-2. For file paths, ALWAYS use environment variables or absolute paths (e.g., [Environment]::GetFolderPath('Desktop'), $env:USERPROFILE)
-3. Handle file existence checks with Test-Path before operations
-4. For wallpaper changes: Use the full sequence (validate file, set registry keys, refresh settings)
-5. For system settings: Include ALL required steps in the proper sequence
-6. Use try/catch blocks for potential errors
-7. For desktop files: Always use proper path resolution, not relative paths
+STRICT SCRIPTING GUIDELINES:
+1. The output MUST ONLY include valid, error-free PowerShell code — NO markdown, comments, or explanations.
+2. Resolve all file paths using environment variables (`$env:USERPROFILE`, `[Environment]::GetFolderPath('Desktop')`, etc.)—AVOID relative paths at all costs.
+3. Always verify file existence with `Test-Path` before performing any operations that involve file or directory access.
+4. For operations such as altering system settings, changing wallpapers, or modifying configurations, provide the FULL, explicit sequence—no shortcuts, no omissions.
+5. Use comprehensive `try-catch` blocks around potentially risky or destructive operations to ensure proper error handling and script resilience.
+6. Ensure the script is **complete, executable**, and ready to run directly in PowerShell without requiring any additional steps or modifications.
+7. Handle edge cases and exceptions proactively, ensuring the script will function under all normal and edge-case conditions.
 
-WALLPAPER CHANGE PATTERN:
-- Verify the image exists
-- Use absolute path with environment variables
-- Set proper registry keys in 'HKCU:\Control Panel\Desktop'
-- Update 'WallpaperStyle' and 'TileWallpaper' keys
-- Force a refresh using the user32.dll SendMessageTimeout function
-- Handle potential errors
-
-CHECK YOUR OUTPUT: Ensure your command is complete, properly formatted, and executable directly in PowerShell without any modifications."
+STRICTLY FOLLOW THESE RULES AND RETURN **ONLY** THE FINAL, EXECUTABLE PowerShell SCRIPT. DO NOT OMIT ANY DETAILS."
                     }
                 }
-            }
-        }
-            };
+            }}
 
-            // Rest of the implementation remains the same
-            var requestJson = JsonSerializer.Serialize(requestBody);
-            var request = new HttpRequestMessage
-            {
-                Method = HttpMethod.Post,
-                RequestUri = new Uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey),
-                Content = new StringContent(requestJson, Encoding.UTF8, "application/json")
-            };
+        };
 
-            var response = await client.SendAsync(request);
-            var responseJson = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(responseJson);
-            var command = doc.RootElement
-                .GetProperty("candidates")[0]
-                .GetProperty("content")
-                .GetProperty("parts")[0]
-                .GetProperty("text")
-                .GetString();
+    var requestJson = JsonSerializer.Serialize(requestBody);
+    var request = new HttpRequestMessage
+    {
+        Method = HttpMethod.Post,
+        RequestUri = new Uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey),
+        Content = new StringContent(requestJson, Encoding.UTF8, "application/json")
+    };
 
-            return command?.Trim();
-        }
+    var response = await client.SendAsync(request);
+    var responseJson = await response.Content.ReadAsStringAsync();
+    using var doc = JsonDocument.Parse(responseJson);
+    var command = doc.RootElement
+        .GetProperty("candidates")[0]
+        .GetProperty("content")
+        .GetProperty("parts")[0]
+        .GetProperty("text")
+        .GetString();
+
+    return command?.Trim();
+}
+
+
         private void ExecutePowerShell(string command)
         {
-            MessageBox.Show(command);
-            Process.Start(new ProcessStartInfo
+            try
             {
-                FileName = "powershell",
-                Arguments = $"-Command \"{command.Replace("\"", "\\\"")}\"",
-                UseShellExecute = false,
-                CreateNoWindow = true
-            });
+                // For debugging - can be removed or commented out in production
+                MessageBox.Show(command);
+
+                // Create process to run PowerShell command
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "powershell",
+                        Arguments = $"-Command \"{command.Replace("\"", "\\\"")}\"",
+                        UseShellExecute = false,
+                        CreateNoWindow = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    }
+                };
+
+                // Capture output and error
+                StringBuilder output = new StringBuilder();
+                StringBuilder error = new StringBuilder();
+
+                process.OutputDataReceived += (sender, args) =>
+                {
+                    if (args.Data != null)
+                        output.AppendLine(args.Data);
+                };
+
+                process.ErrorDataReceived += (sender, args) =>
+                {
+                    if (args.Data != null)
+                        error.AppendLine(args.Data);
+                };
+
+                // Start process and begin reading output
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                process.WaitForExit();
+
+                // Check for errors
+                if (process.ExitCode != 0 || error.Length > 0)
+                {
+                    string errorMessage = error.Length > 0
+                        ? error.ToString()
+                        : $"Command failed with exit code: {process.ExitCode}";
+
+                    ShowStatusNotification($"Error: {errorMessage}", Colors.Crimson);
+                }
+                else
+                {
+                    ShowStatusNotification("Command executed successfully", Colors.MediumSeaGreen);
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowStatusNotification($"Execution error: {ex.Message}", Colors.Crimson);
+            }
         }
     }
 }
