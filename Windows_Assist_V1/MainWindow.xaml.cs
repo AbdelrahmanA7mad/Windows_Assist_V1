@@ -180,10 +180,7 @@ STRICTLY FOLLOW THESE RULES AND RETURN **ONLY** THE FINAL, EXECUTABLE PowerShell
         {
             try
             {
-                // For debugging - can be removed or commented out in production
-                MessageBox.Show(command);
-
-                // Create process to run PowerShell command
+                
                 var process = new Process
                 {
                     StartInfo = new ProcessStartInfo
