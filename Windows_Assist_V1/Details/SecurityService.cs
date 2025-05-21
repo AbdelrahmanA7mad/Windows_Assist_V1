@@ -1,189 +1,152 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
+using MediaColor = System.Windows.Media.Color;
+using WPF = System.Windows;
+using Controls = System.Windows.Controls;
+using Media = System.Windows.Media;
 
 namespace Windows_Assist_V1
 {
     public class SecurityService
     {
+        private readonly List<string> _dangerousOperations = new()
+        {
+            @"rm\s+-r",
+            @"rmdir\s+/s",
+            @"del\s+/s",
+            @"format",
+            @"shutdown",
+            @"restart-computer",
+            @"stop-computer",
+            @"remove-item\s+-recurse",
+            @"remove-item\s+-force",
+            @"remove-item\s+-path",
+            @"remove-item\s+-literalpath"
+        };
+
         public bool IsPotentiallyDangerousOperation(string command)
         {
-            // List of potentially dangerous PowerShell commands and operations
-            string[] dangerousPatterns = new string[]
+            foreach (var operation in _dangerousOperations)
             {
-                @"\bRemove-Item\b", @"\bRm\b", @"\bDel\b", @"\bDelete\b",    // File/directory deletion
-                @"\bFormat-Volume\b", @"\bFormat\b",                         // Disk formatting
-                @"\bRestart-Computer\b", @"\bShutdown\b",                   // System restart/shutdown
-            };
-
-            // Check if command contains any dangerous patterns
-            foreach (string pattern in dangerousPatterns)
-            {
-                if (Regex.IsMatch(command, pattern, RegexOptions.IgnoreCase))
+                if (Regex.IsMatch(command, operation, RegexOptions.IgnoreCase))
                 {
                     return true;
                 }
             }
-
             return false;
         }
 
-        public Task<bool> ShowDangerousOperationAlert(string command)
+        public async Task<bool> ShowDangerousOperationAlert(string command)
         {
-            var taskCompletionSource = new TaskCompletionSource<bool>();
-
-            // Create and configure the confirmation dialog
-            var confirmationWindow = new Window
+            var result = await WPF.Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                Title = "Security Alert",
-                Width = 500,
-                Height = 300,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                ResizeMode = ResizeMode.NoResize,
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = new SolidColorBrush(Colors.Transparent)
-            };
+                var dialog = new Window
+                {
+                    Title = "Security Warning",
+                    Width = 500,
+                    Height = 300,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    ResizeMode = ResizeMode.NoResize,
+                    Background = new SolidColorBrush(MediaColor.FromRgb(45, 45, 45)),
+                    WindowStyle = WindowStyle.ToolWindow
+                };
 
-            // Create main border with shadow
-            var mainBorder = new Border
-            {
-                Background = new SolidColorBrush(Color.FromRgb(35, 35, 35)),
-                CornerRadius = new CornerRadius(10),
-                Margin = new Thickness(10)
-            };
+                var mainGrid = new Grid
+                {
+                    Margin = new Thickness(20)
+                };
 
-            mainBorder.Effect = new DropShadowEffect
-            {
-                Color = Colors.Black,
-                Direction = 315,
-                ShadowDepth = 5,
-                Opacity = 0.6,
-                BlurRadius = 15
-            };
+                var warningIcon = new TextBlock
+                {
+                    Text = "⚠️",
+                    FontSize = 48,
+                    HorizontalAlignment = WPF.HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 20)
+                };
 
-            // Create layout grid
-            var grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(50) });
-            grid.RowDefinitions.Add(new RowDefinition());
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(60) });
+                var warningText = new TextBlock
+                {
+                    Text = "This command may be potentially dangerous:",
+                    Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 255, 255)),
+                    FontSize = 16,
+                    TextWrapping = TextWrapping.Wrap,
+                    HorizontalAlignment = WPF.HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 10)
+                };
 
-            // Create header
-            var headerPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Background = new SolidColorBrush(Color.FromRgb(192, 57, 43)),
-                Height = 50
-            };
+                var commandText = new TextBlock
+                {
+                    Text = command,
+                    Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 100, 100)),
+                    FontFamily = new Media.FontFamily("Consolas"),
+                    FontSize = 14,
+                    TextWrapping = TextWrapping.Wrap,
+                    HorizontalAlignment = WPF.HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 20)
+                };
 
-            var headerText = new TextBlock
-            {
-                Text = "⚠️ WARNING: Potentially Dangerous Operation",
-                Foreground = new SolidColorBrush(Colors.White),
-                FontSize = 16,
-                FontWeight = FontWeights.Bold,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(15, 0, 0, 0)
-            };
+                var buttonPanel = new StackPanel
+                {
+                    Orientation = Controls.Orientation.Horizontal,
+                    HorizontalAlignment = WPF.HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 20, 0, 0)
+                };
 
-            headerPanel.Children.Add(headerText);
-            Grid.SetRow(headerPanel, 0);
-            grid.Children.Add(headerPanel);
+                var confirmButton = new Controls.Button
+                {
+                    Content = "Execute",
+                    Width = 100,
+                    Height = 30,
+                    Margin = new Thickness(0, 0, 10, 0),
+                    Background = new SolidColorBrush(MediaColor.FromRgb(200, 50, 50)),
+                    Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 255, 255)),
+                    BorderThickness = new Thickness(0)
+                };
 
-            // Create content panel
-            var contentPanel = new StackPanel
-            {
-                Margin = new Thickness(20)
-            };
+                var cancelButton = new Controls.Button
+                {
+                    Content = "Cancel",
+                    Width = 100,
+                    Height = 30,
+                    Background = new SolidColorBrush(MediaColor.FromRgb(60, 60, 60)),
+                    Foreground = new SolidColorBrush(MediaColor.FromRgb(255, 255, 255)),
+                    BorderThickness = new Thickness(0)
+                };
 
-            var warningText = new TextBlock
-            {
-                Text = "The following operation could modify your system in significant ways:",
-                Foreground = new SolidColorBrush(Colors.WhiteSmoke),
-                FontSize = 14,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 15)
-            };
+                bool? dialogResult = null;
 
-            var questionText = new TextBlock
-            {
-                Text = "Are you sure you want to proceed with this operation?",
-                Foreground = new SolidColorBrush(Colors.Yellow),
-                FontSize = 14,
-                FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 15, 0, 0)
-            };
-            contentPanel.Children.Add(warningText);
-            contentPanel.Children.Add(questionText);
-            Grid.SetRow(contentPanel, 1);
-            grid.Children.Add(contentPanel);
+                confirmButton.Click += (s, e) =>
+                {
+                    dialogResult = true;
+                    dialog.Close();
+                };
 
-            // Create button panel
-            var buttonPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(20, 0, 20, 20)
-            };
+                cancelButton.Click += (s, e) =>
+                {
+                    dialogResult = false;
+                    dialog.Close();
+                };
 
-            var yesButton = new Button
-            {
-                Content = "Yes, Do It",
-                Padding = new Thickness(15, 8, 15, 8),
-                Margin = new Thickness(10, 0, 0, 0),
-                Background = new SolidColorBrush(Color.FromRgb(192, 57, 43)),
-                Foreground = new SolidColorBrush(Colors.White),
-                BorderThickness = new Thickness(0)
-            };
+                buttonPanel.Children.Add(confirmButton);
+                buttonPanel.Children.Add(cancelButton);
 
-            var noButton = new Button
-            {
-                Content = "No, Cancel ",
-                Padding = new Thickness(15, 8, 15, 8),
-                Margin = new Thickness(10, 0, 0, 0),
-                Background = new SolidColorBrush(Color.FromRgb(50, 50, 50)),
-                Foreground = new SolidColorBrush(Colors.White),
-                BorderThickness = new Thickness(0)
-            };
+                mainGrid.Children.Add(warningIcon);
+                mainGrid.Children.Add(warningText);
+                mainGrid.Children.Add(commandText);
+                mainGrid.Children.Add(buttonPanel);
 
-            yesButton.Click += (s, e) =>
-            {
-                confirmationWindow.Close();
-                taskCompletionSource.SetResult(true);
-            };
+                dialog.Content = mainGrid;
+                dialog.ShowDialog();
 
-            noButton.Click += (s, e) =>
-            {
-                confirmationWindow.Close();
-                taskCompletionSource.SetResult(false);
-            };
+                return dialogResult ?? false;
+            });
 
-            buttonPanel.Children.Add(noButton);
-            buttonPanel.Children.Add(yesButton);
-            Grid.SetRow(buttonPanel, 2);
-            grid.Children.Add(buttonPanel);
-
-            // Add grid to border
-            mainBorder.Child = grid;
-
-            // Set main content of window
-            confirmationWindow.Content = mainBorder;
-
-            // Make window draggable
-            headerPanel.MouseLeftButtonDown += (s, e) =>
-            {
-                confirmationWindow.DragMove();
-            };
-
-            // Show dialog
-            confirmationWindow.Show();
-
-            return taskCompletionSource.Task;
+            return result;
         }
     }
 }
