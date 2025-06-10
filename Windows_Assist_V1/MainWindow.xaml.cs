@@ -171,36 +171,9 @@ namespace Windows_Assist_V1
             _hotKey?.Unregister();
         }
 
-        private void AddToHistory(string command)
-        {
-            if (!string.IsNullOrWhiteSpace(command))
-            {
-                _commandHistory.Insert(0, command);
-                if (_commandHistory.Count > 10) // Keep last 10 commands
-                {
-                    _commandHistory.RemoveAt(_commandHistory.Count - 1);
-                }
-                UpdateHistoryList();
-            }
-        }
+       
 
-        private void UpdateHistoryList()
-        {
-            HistoryListBox.Items.Clear();
-            foreach (var command in _commandHistory)
-            {
-                HistoryListBox.Items.Add(command);
-            }
-        }
-
-        private void HistoryListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-        {
-            if (HistoryListBox.SelectedItem != null)
-            {
-                UserInput.Text = HistoryListBox.SelectedItem.ToString() ?? string.Empty;
-                UserInput.CaretIndex = UserInput.Text.Length;
-            }
-        }
+ 
 
         private void ClearButton_Click(object sender, RoutedEventArgs e)
         {
@@ -218,8 +191,6 @@ namespace Windows_Assist_V1
             if (e.Key == Key.Enter && !string.IsNullOrWhiteSpace(UserInput.Text))
             {
                 string userText = UserInput.Text;
-                AddToHistory(userText);
-
                 // Show processing animation
                 ProcessingSpinner.Visibility = Visibility.Visible;
                 StatusText.Text = "Processing...";

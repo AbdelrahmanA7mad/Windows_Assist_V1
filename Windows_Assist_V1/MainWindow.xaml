@@ -46,36 +46,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- History ListBox Style -->
-        <Style x:Key="HistoryListBoxStyle" TargetType="ListBox">
-            <Setter Property="Background" Value="#1AFFFFFF"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="MaxHeight" Value="150"/>
-            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-        </Style>
-
-        <Style x:Key="HistoryItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="Margin" Value="0,2"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="8">
-                            <ContentPresenter Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#30FFFFFF"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
         <!-- Modern TextBox style -->
         <Style x:Key="ModernTextBox" TargetType="TextBox">
@@ -169,6 +139,10 @@
             <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.6" Color="#222222"/>
         </Border.Effect>
         <Grid Margin="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="71*"/>
+                <ColumnDefinition Width="399*"/>
+            </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -177,7 +151,7 @@
             </Grid.RowDefinitions>
 
             <!-- Header -->
-            <Grid Grid.Row="0">
+            <Grid Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,60" Grid.RowSpan="2">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="10" Height="10" Fill="#4C9BE8" Margin="0,0,8,0"/>
                     <TextBlock Text="Computer Assistant" 
@@ -222,13 +196,13 @@
             </Grid>
 
             <!-- Input Box -->
-            <Grid Grid.Row="1" Margin="0,10,0,0">
+            <Grid Grid.Row="1" Margin="0,10,0,28" Grid.ColumnSpan="2" Grid.RowSpan="3">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <TextBox x:Name="UserInput" 
                          Style="{StaticResource ModernTextBox}" 
                          KeyDown="UserInput_KeyDown" 
@@ -251,7 +225,7 @@
                 <Button x:Name="ClearButton"
                         Grid.Column="2"
                         Style="{StaticResource ModernButton}"
-                        Margin="8,0,0,0"
+                        Margin="4,8,4,8"
                         Click="ClearButton_Click"
                         ToolTip="Clear input">
                     <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41z" 
@@ -270,29 +244,12 @@
                         Visibility="Collapsed"/>
             </Grid>
 
-            <!-- History Panel -->
-            <Grid Grid.Row="2" Margin="0,10,0,0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                
-                <TextBlock Text="Recent Commands" 
-                           Foreground="#AAAAAA"
-                           FontSize="12"
-                           Margin="0,0,0,4"/>
-                
-                <ListBox x:Name="HistoryListBox"
-                         Grid.Row="1"
-                         Style="{StaticResource HistoryListBoxStyle}"
-                         ItemContainerStyle="{StaticResource HistoryItemStyle}"
-                         SelectionChanged="HistoryListBox_SelectionChanged"/>
-            </Grid>
+
 
             <!-- Status Text -->
             <StackPanel Grid.Row="3" 
                        Orientation="Horizontal"
-                       Margin="8,12,0,0">
+                       Margin="8,26,0,-14" Grid.ColumnSpan="2">
                 <Ellipse Width="6" Height="6" Fill="#4CCA64" Margin="0,0,8,0" VerticalAlignment="Center"/>
                 <TextBlock x:Name="StatusText" 
                        Text="Ready" 
